@@ -1,0 +1,338 @@
+---
+output:
+  word_document: default
+  html_document: default
+---
+
+
+
+
+
+```{r}
+library(tidyverse)
+library(tidymodels)
+library(GGally) #ggcorr and ggpairs
+library(ggcorrplot) #correlation plot alternative
+library(gridExtra) #create grids of plots
+```
+
+```{r}
+ameso = read_csv("ames_student.csv")
+```
+
+```{r}
+str(ameso)
+summary(ameso)
+```
+
+```{r}
+ames = ameso %>% mutate(MS_SubClass = as_factor(MS_SubClass)) %>%
+  mutate(MS_Zoning = as_factor(MS_Zoning)) %>%
+  mutate(Street = as_factor(Street)) %>%
+  mutate(Alley = as_factor(Alley)) %>%
+  mutate(Lot_Shape = as_factor(Lot_Shape)) %>%
+  mutate(Land_Contour = as_factor(Land_Contour)) %>%
+  mutate(Utilities = as_factor(Utilities)) %>%
+  mutate(Lot_Config = as_factor(Lot_Config)) %>%
+  mutate(Land_Slope = as_factor(Land_Slope)) %>%
+  mutate(Neighborhood = as_factor(Neighborhood)) %>%
+  mutate(Condition_1 = as_factor(Condition_1)) %>%
+  mutate(Condition_2 = as_factor(Condition_2)) %>%
+  mutate(Bldg_Type = as_factor(Bldg_Type)) %>%
+  mutate(House_Style = as_factor(House_Style)) %>%
+  mutate(Overall_Qual = as_factor(Overall_Qual)) %>%
+  mutate(Overall_Cond = as_factor(Overall_Cond)) %>%
+  mutate(Roof_Style = as_factor(Roof_Style)) %>%
+  mutate(Roof_Matl = as_factor(Roof_Matl)) %>%
+  mutate(Exterior_1st = as_factor(Exterior_1st)) %>%
+  mutate(Exterior_2nd = as_factor(Exterior_2nd)) %>%
+  mutate(Mas_Vnr_Type = as_factor(Mas_Vnr_Type)) %>%
+  mutate(Exter_Qual = as_factor(Exter_Qual)) %>%
+  mutate(Exter_Cond = as_factor(Exter_Cond)) %>%
+  mutate(Foundation = as_factor(Foundation)) %>%
+  mutate(Bsmt_Qual = as_factor(Bsmt_Qual)) %>%
+  mutate(Bsmt_Cond = as_factor(Bsmt_Cond)) %>%
+  mutate(Bsmt_Exposure = as_factor(Bsmt_Exposure)) %>%
+  mutate(BsmtFin_Type_1 = as_factor(BsmtFin_Type_1)) %>%
+  mutate(BsmtFin_Type_2 = as_factor(BsmtFin_Type_2)) %>%
+  mutate(Heating = as_factor(Heating)) %>%
+  mutate(Heating_QC = as_factor(Heating_QC)) %>%
+  mutate(Central_Air = as_factor(Central_Air)) %>%
+  mutate(Electrical = as_factor(Electrical)) %>%
+  mutate(Kitchen_Qual = as_factor(Kitchen_Qual)) %>%
+  mutate(Functional = as_factor(Functional)) %>%
+  mutate(Fireplace_Qu = as_factor(Fireplace_Qu)) %>%
+  mutate(Garage_Type = as_factor(Garage_Type)) %>%
+  mutate(Garage_Finish = as_factor(Garage_Finish)) %>%
+  mutate(Garage_Cond = as_factor(Garage_Cond)) %>%
+  mutate(Garage_Qual = as_factor(Garage_Qual)) %>%
+  mutate(Paved_Drive = as_factor(Paved_Drive)) %>%
+  mutate(Pool_QC = as_factor(Pool_QC)) %>%
+  mutate(Fence = as_factor(Fence)) %>%
+  mutate(Misc_Feature = as_factor(Misc_Feature)) %>%
+  mutate(Sale_Type = as_factor(Sale_Type)) %>%
+  mutate(Sale_Condition = as_factor(Sale_Condition)) %>%
+  mutate(Above_Median = as_factor(Above_Median))
+ # mutate(Above_Median = fct_recode(Above_Median, "0" = "No", "1" = "Yes" ))
+  
+  
+  
+#  mutate(Survived = fct_recode(Survived, "No" = "0", "Yes" = "1" )) %>%
+#  mutate(Pclass = as_factor(Pclass)) %>% mutate(Sex = as_factor(Sex))
+str(ames)
+```
+
+should split columns into groups to make more managable
+- date and time
+-location
+-land
+-internal & external features
+-basement
+-General house stats?
+
+
+```{r split by idea}
+amesf_date = ames %>%
+  select( Neighborhood,Year_Built, Year_Remod_Add, Mo_Sold, Year_Sold, Sale_Type, Sale_Condition, Above_Median)
+
+amesf_exft = ames %>%
+  select(Neighborhood ,Garage_Type, Garage_Finish, Garage_Cond, Garage_Qual, Garage_Cars, Garage_Area, Paved_Drive, Wood_Deck_SF, Open_Porch_SF, Enclosed_Porch, Three_season_porch, Screen_Porch, Pool_Area, Pool_QC, Fence, Misc_Feature, Misc_Val, Above_Median)
+
+amesf_house = ames %>%
+  select(Neighborhood,Bldg_Type, House_Style, Overall_Qual, Overall_Cond ,Above_Median)
+
+amesf_bas = ames %>%
+  select(Neighborhood,Foundation, Bsmt_Qual, Bsmt_Cond, Bsmt_Exposure, BsmtFin_Type_1, BsmtFin_SF_1, BsmtFin_Type_2, BsmtFin_SF_2,Bsmt_Unf_SF, Total_Bsmt_SF ,Above_Median)
+
+amesf_exhs = ames %>%
+  select(Neighborhood,Roof_Style, Roof_Matl, Exterior_1st, Exterior_2nd, Mas_Vnr_Type, Mas_Vnr_Area, Exter_Qual, Exter_Cond ,Above_Median)
+
+amesf_inft = ames %>%
+  select(Neighborhood, Heating, Heating_QC, Central_Air, Electrical, First_Flr_SF, Second_Flr_SF, Low_Qual_Fin_SF, Gr_Liv_Area, Bsmt_Full_Bath, Bsmt_Half_Bath, Bedroom_AbvGr, Kitchen_AbvGr, Kitchen_Qual, TotRms_AbvGrd, Functional, Fireplaces, Fireplace_Qu ,Above_Median)
+
+amesf_land = ames %>%
+  select(Neighborhood, Lot_Frontage, Lot_Area, Lot_Shape, Land_Contour, Lot_Config, Land_Slope ,Above_Median)
+
+amesf_location = ames %>%
+  select( Neighborhood,MS_Zoning, Street, Alley, Utilities, Condition_1, Condition_2, Longitude, Latitude ,Above_Median)
+
+amesf_ult = ames %>%
+  select(Neighborhood,Bsmt_Qual, Garage_Type, Garage_Finish, Paved_Drive, Lot_Shape, Exterior_1st, Exterior_2nd, Mas_Vnr_Type, Exter_Qual, Overall_Qual, Fireplaces, Fireplace_Qu, MS_Zoning, Above_Median)
+
+```
+
+
+```{r land}
+ggpairs(amesf_land, columns = 5:8)+ theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+ggpairs(amesf_land, columns = c(2,3,4,8))+ theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+
+```
+
+```{r date}
+ggpairs(amesf_date, columns = c(2:4,8)) + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+ggpairs(amesf_date, columns = c(5:8)) + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+```
+
+
+```{r basement}
+ggpairs(amesf_bas, columns = c(2:4,12)) + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+ggpairs(amesf_bas, columns = c(5:8, 12)) + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+ggpairs(amesf_bas, columns = c(9:12)) + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+```
+
+```{r external Features}
+ggpairs(amesf_exft, columns = c(2:4,19)) + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+ggpairs(amesf_exft, columns = c(5:8,19)) + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+ggpairs(amesf_exft, columns = c(9:12,19)) + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+ggpairs(amesf_exft, columns = c(13:16,19)) + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+ggpairs(amesf_exft, columns = c(16:19)) + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+```
+
+```{r external house}
+ggpairs(amesf_exhs, columns = c(2:4,10), cardinality_threshold = 16) + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+ggpairs(amesf_exhs, columns = c(5:7,10), cardinality_threshold = 17) + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+ggpairs(amesf_exhs, columns = c(8:10)) + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+
+
+```
+
+```{r general house}
+ggpairs(amesf_house, columns = c(2,3,6)) + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+ggpairs(amesf_house, columns = c(4:6)) + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+
+```
+
+```{r internal features}
+ggpairs(amesf_inft, columns = c(2:4,19)) + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+ggpairs(amesf_inft, columns = c(5:8,19)) + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+ggpairs(amesf_inft, columns = c(9:12,19)) + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+ggpairs(amesf_inft, columns = c(13:16,19)) + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+ggpairs(amesf_inft, columns = c(16:19)) + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+
+```
+
+```{r location}
+ggpairs(amesf_location, columns = c(2:4,10)) + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+ggpairs(amesf_location, columns = c(5:7,10)) + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+ggpairs(amesf_location, columns = c(8:10)) + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+
+```
+
+```{r Neighborhood}
+ggpairs(amesf_location, columns = c(1,10), cardinality_threshold = 28) + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+
+```
+
+Most important variables:
+
+Basement Quality
+Garage Type
+Garage Finish
+Paved Drive
+Lot Shape
+
+Exterior 1? 
+Exterior 2?
+
+Mas_Vnr_Type
+External Quality
+Overall Quality
+Fireplaces
+Fireplace Quality
+Zoning
+Neighborhood
+
+```{r}
+ggpairs(amesf_ult, columns = c(2:4,15)) + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+ggpairs(amesf_ult, columns = c(5:7,15), cardinality_threshold = 17) + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+ggpairs(amesf_ult, columns = c(8:10,15), cardinality_threshold = 17) + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+ggpairs(amesf_ult, columns = c(11:13,15)) + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+ggpairs(amesf_ult, columns = c(14:15)) + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+
+```
+```{r}
+amespres = ames %>%
+  select(Overall_Qual, Exter_Qual, Bsmt_Qual,Fireplace_Qu, Above_Median)
+  ggpairs(amespres)
+```
+
+
+```{r plot storage}
+#ggplot(ames_loc2, aes(x=Neighborhood, Y= n)) + 
+#  geom_bar()
+#
+#ggplot(ames_loc2_y, aes(x=Neighborhood,y=n)) + geom_point(alpha=0.1) 
+#
+#ggplot(ames_loc2_y, aes(x)) + geom_histogram()
+
+# Grouped
+#ggplot(data, aes(fill=condition, y=value, x=specie)) + 
+ #   geom_bar(position="dodge", stat="identity")
+
+# Stacked
+#ggplot(data, aes(fill=condition, y=value, x=specie)) + 
+ #   geom_bar(position="stack", stat="identity")
+
+# Stacked + percent
+#ggplot(data, aes(fill=condition, y=value, x=specie)) + 
+ #   geom_bar(position="fill", stat="identity")
+```
+
+```{r}
+ggplot(ames, aes(y=Fireplaces, fill=Above_Median, x=Fireplace_Qu)) +
+  ggtitle("Fireplaces and Quality") +
+  xlab("Fireplace Quality") + ylab("Number of Firplaces") + 
+  labs(fill = "Above Median Price?") +
+    geom_bar(position="dodge", stat="identity")+ 
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+```
+
+```{r}
+ggplot(ames, aes(fill=Above_Median, y=Garage_Type, x=Garage_Finish)) +
+ggtitle("Garage Type and Finish") +
+  xlab("Garage Finish") + ylab("Garage Type") + 
+  labs(fill = "Above Median Price?") +
+    geom_bar(position="dodge", stat="identity")+ 
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+```
+
+
+
+```{r}
+ggplot(ames, aes(fill=Above_Median, x=Exter_Qual, y=Overall_Qual)) + 
+  ggtitle("External and Overall Quality of a house") +
+  xlab("External Quality") + ylab("Overall Quality") + 
+  labs(fill = "Above Median Price?") +
+    geom_bar(position="dodge", stat="identity")+ 
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+```
+
+```{r}
+
+ggplot(ames, aes(fill=Above_Median, y=Exterior_1st, x=Exter_Qual)) +
+  ggtitle("Set 1 of Exterior paneling") +
+  xlab("External Quality") + ylab("Paneling Type") + 
+  labs(fill = "Above Median Price?") +
+    geom_bar(position="dodge", stat="identity") + 
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+```
+
+```{r}
+ggplot(ames, aes(fill=Above_Median, y=Garage_Type, x=Exter_Qual)) + 
+    geom_bar(position="dodge", stat="identity") + 
+  ggtitle("Garage Type and External Quality") +
+  xlab("External Quality") + ylab("Garage Type") + 
+  labs(fill = "Above Median Price?") +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+```
+
+```{r}
+ggplot(ames, aes(fill=Above_Median, x=Exter_Qual, y=MS_Zoning)) + 
+    geom_bar(position="dodge", stat="identity") +
+  ggtitle("Zoning and External Quality") +
+  xlab("External Quality") + ylab("Zone") + 
+  labs(fill = "Above Median Price?") +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+
+```
+
+```{r}
+ggplot(ames, aes(fill=Above_Median, y=Neighborhood, x=Exter_Qual)) +
+  ggtitle("Neighborhoods and External Quality") +
+  xlab("External Quality") + ylab("Neighborhood") + 
+  labs(fill = "Above Median Price?") +
+    geom_bar(position="dodge", stat="identity") +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
